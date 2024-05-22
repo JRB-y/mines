@@ -1,21 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 
-interface Item {
-  placeholder: string;
-  value: number | string;
-  clicked: boolean;
-  emoji: string;
-}
-
-// interface Box {
-//   value: number;
-//   clicked: boolean;
-//   emoji: string;
-// }
-
-
-const createBoxes = (n: number) => {
+// Helper function to generate boxes
+const generateBoxes = (n: number): Array<number> => {
   const arr = new Array(25).fill(0)
   for (let i = 0; i < n; i++) {
     arr[i] = 1
@@ -23,107 +10,118 @@ const createBoxes = (n: number) => {
   return arr.sort(() => Math.random() - 0.5)
 }
 
-const minesN = ref<number>(3)
-const arr = ref<Array<{ placeholder: string, value: number, clicked: boolean, emoji: string }>>([]);
-
-const wins = ref<number>(0)
-const losses = ref<number>(0)
-const gameStopped = ref<boolean>(false)
-const gameLive = ref<boolean>(false)
-
-// Write me the function generateArray but with typescript
-
-const generateArray = () => {
-  if (minesN.value <= 0 || minesN.value > 25) return alert('Between 1 and 25 mines allowed')
-  const boxes = createBoxes(Math.round(minesN.value))
-  arr.value = boxes.map(value => ({ placeholder: "❓", value: value, clicked: false, emoji: value === 1 ? "💣" : "👍" }))
-  gameStopped.value = false
-  gameLive.value = true
+interface Box {
+  placeholder: string;
+  mine: boolean;
+  clicked: boolean;
 }
 
+interface Score {
+  wins: number;
+  losses: number;
+}
 
-// Click
-const checkClick = (item: Item) => {
+const boxes = ref<Box[]>([])
+const numberMines = ref<number>(3)
+const gameIsLive = ref<boolean>(false)
+
+const score = reactive<Score>({
+  wins: 0,
+  losses: 0,
+})
+
+const createBoxes = () => {
+  if (gameIsLive.value) return
+
+  boxes.value = generateBoxes(numberMines.value).map((item) => ({
+    placeholder: '',
+    mine: item === 1,
+    clicked: false,
+  }))
+  gameIsLive.value = true
+}
+
+const checkClick = (item: Box) => {
+  if (!gameIsLive.value) return
   if (item.clicked) return
-  if (gameStopped.value) return
 
   item.clicked = true
-  item.value = item.emoji
-  item.placeholder = ''
 
-  setTimeout(() => {}, 500)
+  if (item.mine) {
+    score.losses++
+    gameIsLive.value = false
+    // set clicked only the mines
+    boxes.value = boxes.value.map((item) => (item.mine ? { ...item, clicked: true } : item))
 
+    showMines()
+    alert(" 💥 You hit a mine! 💥 ")
+  } else {
+    const isWin = boxes.value.every((item) => item.mine || item.clicked)
+    if (isWin) {
+      score.wins++
+      gameIsLive.value = false
 
-  if (item.value === '💣') {
-    losses.value++
-    gameStopped.value = true
-    gameLive.value = false
-    const conf = confirm('Game Over!')
-    if (conf) arr.value = []
-    return
-  }
-
-  // check if all the boxes that are not bombs are clicked
-  if (arr.value.filter(item => item.value !== 1).every(item => item.clicked)) {
-    wins.value++
-    gameLive.value = false
-    gameStopped.value = true
-    const conf = confirm('You won!')
-    if (conf) arr.value = []
-    return
+      showMines()
+      alert(" 🎉 You won! 🎉 ")
+    }
   }
 }
 
 const cashout = () => {
-  if (gameStopped.value) return
-  if (!gameLive.value) return 
+  if (!gameIsLive.value) return
+  // check if at least one box is clicked
+  if (!boxes.value.some((item) => item.clicked)) return
 
-  // if none of the boxes are clicked
-  if (arr.value.every(item => !item.clicked)) return
+  gameIsLive.value = false
+  score.wins++
 
-  gameStopped.value = true
-  gameLive.value = false
+  showMines()
+  alert(" 🏃‍♂️ You cashed out! 🏃‍♂️ ")
+}
 
-  wins.value++
-  arr.value = []
-
-  // confirm('Cashout?') && generateArray()
+const showMines = () => {
+  boxes.value = boxes.value.map((item) => (item.mine ? { ...item, clicked: true } : item))
 }
 </script>
 
 <template>
   <main>
     <div class="controls">
-      <input
+      <!-- A select box with 24 number from 1 to 24 -->
+      <select v-model="numberMines" class="input-mines">
+        <option v-for="n in 24" :key="n" :value="n">{{ n }}</option>
+      </select>
+
+      <!-- <input
         type="number"
         placeholder="mines"
-        v-model="minesN"
+        v-model="numberMines"
         class="input-mines"
-      >
-      <button class="start-btn" @click="generateArray">Start</button>
+      > -->
+      <button class="start-btn" @click="createBoxes" :disabled="gameIsLive">Start</button>
     </div>
 
     <!-- draw me a grid of 5X5  -->
     <div class="grid">
       <div
-        v-for="(item, index) in arr"
+        v-for="(box, index) in boxes"
         :key="index"
         class="box"
-        :class="{ active: item.clicked }"
-        @click="checkClick(item)"
+        :class="{ active: box.clicked && !box.mine, 'is-mine': box.mine && box.clicked }"
+        @click="checkClick(box)"
       >
-        {{ item.placeholder || item.value }}
+        {{ box.clicked ? (box.mine ? '💣' : '🌴') : ''}}
       </div>
     </div>
 
 
     <div class="cashout">
-      <button class="cashout-btn" @click="cashout">Cashout</button>
+      <button class="cashout-btn" @click="cashout" :disabled="!gameIsLive">Cashout</button>
     </div>
 
     <div class="score">
-      <span class="wins">WINS: {{ wins }}</span>
-      <span class="losses">LOSSES: {{ losses }}</span>
+      <span class="wins">WINS: {{ score.wins }}</span>
+      <span class="losses">LOSSES: {{ score.losses }}</span>
     </div>
   </main>
 
@@ -163,6 +161,9 @@ const cashout = () => {
   .box.active {
     background-color: greenyellow;
   }
+  .is-mine {
+    background-color: red;
+  }
 
   .controls {
     margin: auto;
@@ -177,6 +178,11 @@ const cashout = () => {
     color: white;
     border: none;
     cursor: pointer;
+  }
+  /* style the start-btn when its disabled */
+  .start-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
   }
   .score {
     text-align: center;
@@ -196,7 +202,14 @@ const cashout = () => {
     display: flex;
     justify-content: center;
   }
+  /* Style this button in disabled */
+  .cashout-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
   .cashout-btn {
+    background-color: green;
     padding: 10px 20px;
     font-size: 1.5rem;
     /* background-color: green; */
@@ -205,6 +218,10 @@ const cashout = () => {
     /* border: none; */
     cursor: pointer;
     margin-top: 20px;
+  }
+
+  .input-mines {
+    width: 200px;
   }
 </style>
 
