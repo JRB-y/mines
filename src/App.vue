@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-// create a function that  takes n and returns  an array of 25 elements with n values of 1 and other 0
-// The order needs to be random
+interface Item {
+  placeholder: string;
+  value: number | string;
+  clicked: boolean;
+  emoji: string;
+}
+
+// interface Box {
+//   value: number;
+//   clicked: boolean;
+//   emoji: string;
+// }
+
+
 const createBoxes = (n: number) => {
   const arr = new Array(25).fill(0)
   for (let i = 0; i < n; i++) {
@@ -11,14 +23,15 @@ const createBoxes = (n: number) => {
   return arr.sort(() => Math.random() - 0.5)
 }
 
-const minesN = ref(3)
-const arr = ref([])
+const minesN = ref<number>(3)
+const arr = ref<Array<{ placeholder: string, value: number, clicked: boolean, emoji: string }>>([]);
 
+const wins = ref<number>(0)
+const losses = ref<number>(0)
+const gameStopped = ref<boolean>(false)
+const gameLive = ref<boolean>(false)
 
-const wins = ref(0)
-const losses = ref(0)
-const gameStopped = ref(false)
-const gameLive = ref(false)
+// Write me the function generateArray but with typescript
 
 const generateArray = () => {
   if (minesN.value <= 0 || minesN.value > 25) return alert('Between 1 and 25 mines allowed')
@@ -30,13 +43,13 @@ const generateArray = () => {
 
 
 // Click
-const checkClick = (item) => {
+const checkClick = (item: Item) => {
   if (item.clicked) return
   if (gameStopped.value) return
 
   item.clicked = true
   item.value = item.emoji
-  item.placeholder = null
+  item.placeholder = ''
 
   setTimeout(() => {}, 500)
 
@@ -96,7 +109,7 @@ const cashout = () => {
         v-for="(item, index) in arr"
         :key="index"
         class="box"
-        :class="{ active: item.clicked === 1 }"
+        :class="{ active: item.clicked }"
         @click="checkClick(item)"
       >
         {{ item.placeholder || item.value }}
