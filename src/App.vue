@@ -50,8 +50,6 @@ const checkClick = (item: Box) => {
   if (item.mine) {
     score.losses++
     gameIsLive.value = false
-    // set clicked only the mines
-    boxes.value = boxes.value.map((item) => (item.mine ? { ...item, clicked: true } : item))
 
     showMines()
     alert(" 💥 You hit a mine! 💥 ")
@@ -91,13 +89,6 @@ const showMines = () => {
       <select v-model="numberMines" class="input-mines">
         <option v-for="n in 24" :key="n" :value="n">{{ n }}</option>
       </select>
-
-      <!-- <input
-        type="number"
-        placeholder="mines"
-        v-model="numberMines"
-        class="input-mines"
-      > -->
       <button class="start-btn" @click="createBoxes" :disabled="gameIsLive">Start</button>
     </div>
 
@@ -128,7 +119,6 @@ const showMines = () => {
 </template>
 
 <style>
-  /* create a grid of 5x5 element that needs to be equal on all devices using flex not grid */
   .grid {
     display: flex;
     flex-wrap: wrap;
@@ -179,7 +169,6 @@ const showMines = () => {
     border: none;
     cursor: pointer;
   }
-  /* style the start-btn when its disabled */
   .start-btn:disabled {
     background-color: #ccc;
     cursor: not-allowed;
@@ -202,24 +191,18 @@ const showMines = () => {
     display: flex;
     justify-content: center;
   }
-  /* Style this button in disabled */
   .cashout-btn:disabled {
     background-color: #ccc;
     cursor: not-allowed;
   }
-
   .cashout-btn {
     background-color: green;
     padding: 10px 20px;
     font-size: 1.5rem;
-    /* background-color: green; */
     border-radius: 2px;
-    /* color: white; */
-    /* border: none; */
     cursor: pointer;
     margin-top: 20px;
   }
-
   .input-mines {
     width: 200px;
   }
